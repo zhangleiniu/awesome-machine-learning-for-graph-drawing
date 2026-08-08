@@ -8,7 +8,7 @@ Papers are grouped by **what the learned component is trained to reproduce or op
 
 ## Contents
 
-- [Coverage](#coverage)
+- [Drawing Conventions and Where They Appear](#drawing-conventions-and-where-they-appear)
 - [Layout Generation](#layout-generation)
   - [Algorithm Imitation](#algorithm-imitation)
   - [Explicit Objective Amortization](#explicit-objective-amortization)
@@ -24,25 +24,25 @@ Papers are grouped by **what the learned component is trained to reproduce or op
 - [Contributing](#contributing)
 - [License](#license)
 
-## Coverage
+## Drawing Conventions and Where They Appear
 
-If you came here asking *can I get a neural layout in the style I need?*, this is the answer. The column that matters is not whether a paper exists but whether it leaves you a model you can run on a graph it was not fit to.
+Which drawing conventions this literature actually touches, and in what role. A convention with no entry in the middle column is one no paper here draws — a fact about this collection, not a proof about the field.
 
-| Layout family | Runs on an unseen graph? | What is actually there |
+| Drawing convention | Papers that emit a drawing in it | Where else it appears |
 |---|---|---|
-| Stress / Kamada-Kawai / MDS | **yes** | DeepGD, GND, GRAPHULY and CoRe-GD each train on a mixed graph corpus and infer on graphs they were not fit to |
-| Neighborhood embedding (t-SNE-style) | **yes** | (DNN)² (one graph family) and DL4GD (mixed corpus). (DNN)² is also the only paper here that compares against an optimizer minimizing its own cost, and reports every quality metric except stress significantly worse |
-| Prescribed regular patterns (grid, star) | **yes, per style** | DeepDrawing trains one model per style and reproduces a perfect grid and a perfect star |
-| Force-directed energy | **weakly evidenced** | Only DeepFD trains across a corpus, and it reports visual quality and runtime rather than a metric-level comparison against the force-directed layouts it takes as its prototype; it also states its training distribution was never analysed. Both et al., Safarli et al. and AutoFDP each optimize one graph at a time and leave no reusable model — and Both et al. replaces the classical long-range repulsion with a short-range Gaussian one, in 3D |
-| Layered / Sugiyama | **no** | GL-GRASP trains one model per graph, and its embedding only chooses which vertex the GRASP construction phase places next. Separately, one paper asks ChatGPT to reproduce Sugiyama |
-| Circular / radial | **no** | Appears only as a fixed stimulus in a perception benchmark, a library call in an LLM evaluation, a style-transfer target, and a criticised model input |
-| Orthogonal | **no** | Excluded by definition in one paper ("we focus on two-dimensional layout methods that draw all edges in straight lines"), listed as future work in another, and the one time it is drawn it is Tamassia's algorithm producing stimuli for machine readers |
-| Octilinear / metro-map | **no** | No generator surfaced in a directed search against this absence |
-| Clustered / space-filling | **no** | Appears only as input to a metric predictor |
+| Stress / Kamada-Kawai / MDS | SGD †, DeepGD, GND, GRAPHULY, CoRe-GD | PivotMDS as a seed or input feature in DeepDrawing, SmartGD, DeepFD, (DNN)², DL4GD; Kamada-Kawai and Spectral as GND's supervision targets; Kamada-Kawai among Kwon et al.'s previewed layouts and among Visual Graph Arena's stimuli |
+| Force-directed (FR, ForceAtlas2, spring) | DeepFD; Both et al., Safarli et al., AutoFDP — each one graph at a time | ForceAtlas2 as DeepDrawing's teacher; ForceAtlas2, sfdp and Spring in SmartGD's example pool; FR left unmodified by GEGraph; force-directed drawings as input to Haleem et al.; FR stimuli in Seeing Graphs Like Humans |
+| Neighborhood embedding (t-SNE-style, CKL) | (DNN)², DL4GD | a t-SNE KL term inside DeepGD's composite loss |
+| Prescribed regular patterns (grid, star) | DeepDrawing | — |
+| Layered / Sugiyama | GL-GRASP — the embedding picks placement order, the metaheuristic produces the coordinates | ChatGPT asked to apply Sugiyama in *Ask and You Shall Receive* |
+| Circular / spiral | — | VSAL's initial layouts and VN-Solver's fixed ones; stimuli in Seeing Graphs Like Humans; a library call in the LLM layout evaluation; a style-transfer target in GVVST; criticised as ambiguous by Visual Graph Arena |
+| Orthogonal | — | Tamassia's algorithm drawing stimuli in Di Bartolomeo et al.; excluded by definition in Kwon et al. ("we focus on two-dimensional layout methods that draw all edges in straight lines") |
+| Clustered / space-filling | — | Treemap among the layouts Kwon et al. previews |
+| Octilinear / metro-map | — | a category in the CGF'24 evaluation review; nothing drawn, nothing learned |
 
-**Where the line falls, and why it is not NP-hardness.** Stress is nonconvex too — the SGD paper below says so about its own guarantee, which "only holds for convergence to a stationary point that may be a saddle." What separates the families above from those below is that stress has a differentiable local search procedure *and* the field accepts its stationary point as the answer, so there is a process to amortize. Crossing-type objectives are discrete: SmartGD, GND and GL-GRASP each state the NP-hardness independently, and AutoFDP names the operative property — these criteria are "challenging due to their discrete and non-convex nature."
+**Everything in the middle column optimizes a continuous objective**, and the papers say why the discrete criteria are not optimized directly: SmartGD, GND and GL-GRASP each state the NP-hardness of crossing minimization independently, and AutoFDP names the property — these criteria are "challenging due to their discrete and non-convex nature."
 
-**These claims are the fragile part of this list.** They describe this collection plus one directed search aimed at the empty cells. They are claims about what was found, not proofs about the field, and [corrections to them](#contributing) are the most useful contribution here.
+**What "learned" does not mean here.** None of these methods is a deterministic map from a graph to a drawing, and for stress it provably cannot be: CoRe-GD's Lemma 1 states that "to minimize stress for arbitrary graphs, the distinguishability power for nodes has to exceed that of the *k*-WL algorithm for any *k*", since nodes in one automorphism orbit are otherwise mapped to the same point. Each method therefore injects something to break the tie — DeepGD takes random 2D coordinates sampled from [0,1]² as node features, GRAPHULY and CoRe-GD take random features, CoRe-GD additionally samples its beacon nodes at random — so the initialization dependence of the classical algorithms was relocated, not removed, and the object learned maps *(graph, random draw)* to a layout. GND is the one that avoids randomness, using Laplacian encodings, and it is also the one that reports the failure: graphs "having very diverse structures from the training distribution may be not correctly plotted", which it attributes to inductive bias and to Laplacian PE's inability to discriminate certain symmetries. **This paragraph is a reading this list draws across four papers; each quoted fact is from the paper named, but none of them frames it this way.**
 
 ## Layout Generation
 
@@ -158,7 +158,7 @@ A paper is in when **a learned component generates, updates, selects or optimize
 - **In —** [GL-GRASP](#where-no-gradient-reaches-the-coordinates): the embedding determines which vertex the GRASP construction phase places next. That decision is part of producing the drawing, even though the coordinates come out of the metaheuristic.
 - **Out —** [GEGraph](#adjacent): the learned component rewrites the input graph that is then handed to an unmodified Fruchterman-Reingold. The drawing procedure is untouched, so what is learned is an input, not a drawing.
 
-**Layout family is held distinct from graph family throughout.** These papers change their input graph distributions constantly — trees, grids, planar graphs, community graphs — and almost never change their drawing convention. Reading "evaluated on tree datasets" as "covers tree layouts" is the most likely way to misuse the [coverage table](#coverage).
+**Layout family is held distinct from graph family throughout.** These papers change their input graph distributions constantly — trees, grids, planar graphs, community graphs — and almost never change their drawing convention. Reading "evaluated on tree datasets" as "covers tree layouts" is the most likely way to misuse the [conventions table](#drawing-conventions-and-where-they-appear).
 
 ## Notes on This List
 
@@ -171,7 +171,7 @@ A paper is in when **a learned component generates, updates, selects or optimize
 
 Issues and pull requests welcome, for missing papers, miscategorised ones, and summaries that misstate what a paper claims.
 
-**Corrections to [Coverage](#coverage) are the most valuable kind.** That table asserts that certain layout families have no generator that runs on an unseen graph. A single counterexample changes it, and a counterexample is more useful here than a new entry anywhere else on the page.
+**Corrections to the [conventions table](#drawing-conventions-and-where-they-appear) are the most valuable kind.** Its empty cells say no paper *here* draws that convention. A single counterexample changes it, and a counterexample is more useful here than a new entry anywhere else on the page.
 
 Entries use a collapsible summary, so the one-liner stays hidden until the title is clicked:
 
